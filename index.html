@@ -1,233 +1,267 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adversarial Robustness Matrix | IDV Assignment 4</title>
-    <!-- 引入 Google Fonts 字体，提升排版质感 -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
-    <!-- 引入 D3.js 库 -->
+    <title>Adversarial Robustness Dashboard | IDV Assignment 4</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <script src="https://d3js.org/d3.v7.min.js"></script>
     
     <style>
-        /* --- 1. 基础页面样式设置 (深色主题) --- */
+        /* --- 1. 全局布局与配色 --- */
+        :root {
+            --bg-color: #0b0e14;
+            --sidebar-bg: rgba(23, 28, 38, 0.7);
+            --accent-color: #6366f1; /* Indigo */
+            --accent-hover: #818cf8;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
         body {
-            font-family: 'Inter', sans-serif; /* 使用现代无衬线字体 */
-            background-color: #0f172a; /* 深蓝黑背景 */
-            color: #e2e8f0; /* 浅灰文字 */
             margin: 0;
-            padding: 40px 20px;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            height: 100vh; /* 全屏高度 */
+            overflow: hidden; /* 防止整体滚动，内容内部滚动 */
+            display: flex; /* Flexbox 布局 */
+        }
+
+        /* --- 2. 左侧边栏 (Sidebar) --- */
+        aside {
+            width: 320px;
+            flex-shrink: 0;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            backdrop-filter: blur(20px); /* 毛玻璃 */
             display: flex;
             flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
+            padding: 30px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            z-index: 10;
         }
 
-        /* 标题区域样式 */
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-            max-width: 800px;
-        }
+        header { margin-bottom: 40px; }
 
         h1 {
-            font-weight: 600;
-            font-size: 2.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
             margin: 0 0 10px 0;
-            background: linear-gradient(90deg, #60a5fa, #c084fc); /* 渐变色文字标题 */
+            background: linear-gradient(135deg, #fff, #94a3b8);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            letter-spacing: -0.02em;
         }
 
-        h3 {
-            font-weight: 300;
-            color: #94a3b8;
-            font-size: 1rem;
+        p.desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.6;
             margin: 0;
         }
 
-        /* --- 2. 控制面板样式 (卡片式设计) --- */
-        .controls-panel {
-            background: #1e293b; /* 比背景稍亮的卡片色 */
-            border: 1px solid #334155;
-            padding: 20px 30px;
-            border-radius: 16px; /* 大圆角 */
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        /* 控制区 */
+        .control-section {
             margin-bottom: 30px;
-            display: flex;
-            gap: 25px;
-            align-items: center;
-            flex-wrap: wrap;
-            justify-content: center;
-            backdrop-filter: blur(10px);
         }
 
-        .control-group {
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #6366f1;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        /* 按钮垂直排列 */
+        .btn-group {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             gap: 10px;
         }
 
-        .label-text {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #64748b;
-            font-weight: 600;
-        }
-
-        /* 按钮样式 - 科技感幽灵按钮 */
         button {
-            background-color: transparent;
-            color: #38bdf8;
-            border: 1px solid #38bdf8;
-            padding: 8px 16px;
-            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 12px 15px;
+            border-radius: 8px;
+            text-align: left;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Inter', sans-serif;
+            transition: all 0.2s ease;
             font-size: 0.9rem;
-            font-weight: 500;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         button:hover {
-            background-color: rgba(56, 189, 248, 0.1);
-            box-shadow: 0 0 15px rgba(56, 189, 248, 0.4); /* 发光效果 */
-            transform: translateY(-2px);
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--accent-color);
+            padding-left: 20px; /* 悬停位移效果 */
         }
 
-        button:active {
-            transform: translateY(0);
+        button.active-btn {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
         }
 
-        /* 自定义滑动条样式 */
+        /* 滑动条容器 */
+        .slider-container {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            margin-bottom: 10px;
+        }
+
         input[type=range] {
-            -webkit-appearance: none; /* 去除默认样式 */
-            width: 140px;
+            width: 100%;
             background: transparent;
+            -webkit-appearance: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            background: #334155;
+            height: 4px;
+            border-radius: 2px;
         }
 
         input[type=range]::-webkit-slider-thumb {
             -webkit-appearance: none;
             height: 16px;
             width: 16px;
+            background: var(--accent-color);
             border-radius: 50%;
-            background: #c084fc;
-            cursor: pointer;
             margin-top: -6px;
-            box-shadow: 0 0 10px rgba(192, 132, 252, 0.5);
-        }
-
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
             cursor: pointer;
-            background: #475569;
-            border-radius: 2px;
+            box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
         }
 
-        /* --- 3. 图表容器样式 --- */
-        #chart-container {
-            background: #1e293b;
-            border: 1px solid #334155;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-            border-radius: 16px;
-            padding: 20px;
+        /* --- 3. 右侧内容区 (Main Content) --- */
+        main {
+            flex: 1;
             position: relative;
-            /* 确保 SVG 居中 */
             display: flex;
             justify-content: center;
+            align-items: center;
+            background: radial-gradient(circle at top right, #1e293b 0%, #0b0e14 60%);
+            overflow: auto; /* 允许图表滚动如果屏幕太小 */
+            padding: 20px;
         }
 
-        /* Tooltip 样式 - 毛玻璃效果 */
+        #chart-container {
+            /* 增加微妙的浮动感 */
+            filter: drop-shadow(0 20px 50px rgba(0,0,0,0.5));
+        }
+
+        /* Tooltip */
         .tooltip {
             position: absolute;
-            text-align: center;
-            padding: 12px;
+            padding: 12px 16px;
             font-size: 13px;
-            background: rgba(15, 23, 42, 0.8); /* 半透明深色 */
-            border: 1px solid #475569;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(255,255,255,0.1);
             color: #fff;
-            border-radius: 8px;
+            border-radius: 6px;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.15s ease-in-out;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            backdrop-filter: blur(8px); /* 毛玻璃 */
+            transition: opacity 0.1s;
             z-index: 100;
-            line-height: 1.5;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            line-height: 1.4;
         }
 
-        /* D3 元素样式覆盖 */
-        .axis text { 
-            font-size: 11px; 
-            fill: #94a3b8; /* 浅灰色坐标轴文字 */
-            font-family: 'Inter', sans-serif;
+        /* D3 Elements Styling */
+        .axis text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            fill: #64748b;
         }
-        
-        .axis path, .axis line { display: none; } /* 隐藏坐标轴线，只留文字 */
-        
-        /* 高亮样式 */
+
         .axis text.active {
+            fill: var(--accent-hover);
             font-weight: 700;
-            fill: #38bdf8; /* 亮蓝色高亮 */
-            font-size: 12px;
-            text-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
-        }
-
-        /* 图例文字 */
-        .legend-text {
-            fill: #94a3b8;
             font-size: 12px;
         }
+        
+        .axis path, .axis line { display: none; }
 
-        .label-main {
-            fill: #e2e8f0;
-            font-weight: 600;
-            font-size: 14px;
-        }
+        .legend-text { fill: #64748b; font-size: 11px; font-family: 'Inter', sans-serif; }
+        .main-label { fill: #e2e8f0; font-size: 14px; font-weight: 600; font-family: 'Inter', sans-serif; letter-spacing: 1px; }
 
     </style>
 </head>
 <body>
 
-    <!-- 顶部标题区域 -->
-    <header>
-        <h1>Adversarial Defense Matrix</h1>
-        <h3>Interactive visualization of Model Robustness vs. Attack Methods</h3>
-    </header>
+    <!-- 左侧功能面板 -->
+    <aside>
+        <header>
+            <h1>Robustness<br>Matrix</h1>
+            <p class="desc">Visualizing the resilience of 9 defense models against 26 adversarial attack types.</p>
+        </header>
 
-    <!-- 控制面板区域 -->
-    <div class="controls-panel">
-        <div class="control-group">
-            <span class="label-text">Sorting:</span>
-            <button id="btn-orig">Reset Order</button>
-            <button id="btn-best-model">Top Models</button>
-            <button id="btn-hard-attack">Effective Attacks</button>
+        <div class="control-section">
+            <div class="section-title">Sorting Strategy</div>
+            <div class="btn-group">
+                <button id="btn-orig" class="active-btn">
+                    <span>Original Index</span>
+                    <span>●</span>
+                </button>
+                <button id="btn-best-model">
+                    <span>Best Performance</span>
+                    <span>→</span>
+                </button>
+                <button id="btn-hard-attack">
+                    <span>Hardest Attacks</span>
+                    <span>↓</span>
+                </button>
+            </div>
         </div>
 
-        <div style="width: 1px; height: 30px; background: #334155; margin: 0 10px;"></div> <!-- 分割线 -->
-
-        <div class="control-group">
-            <span class="label-text">Threshold Filter (<span id="slider-val" style="color: #c084fc;">0</span>):</span>
-            <input type="range" id="filterSlider" min="0" max="100" value="0" step="1">
+        <div class="control-section">
+            <div class="section-title">Filter Threshold</div>
+            <div class="slider-container">
+                <div class="slider-header">
+                    <span>Min Score</span>
+                    <span id="slider-val" style="color: var(--accent-color); font-weight:bold;">0</span>
+                </div>
+                <input type="range" id="filterSlider" min="0" max="100" value="0" step="1">
+            </div>
+            <p style="margin-top:10px; font-size: 0.75rem; color: #64748b;">
+                Drag to focus on high-performing model/attack pairs.
+            </p>
         </div>
-    </div>
-    
-    <!-- 图表绘图区域 -->
-    <div id="chart-container"></div>
-    
-    <!-- 悬浮提示框容器 -->
-    <div id="tooltip" class="tooltip"></div>
+
+        <div style="margin-top: auto; font-size: 0.7rem; color: #475569;">
+            IDV Assignment 4 • Data Option 2<br>
+            D3.js Interactive Visualization
+        </div>
+    </aside>
+
+    <!-- 右侧主图表区 -->
+    <main>
+        <div id="chart-container"></div>
+        <div id="tooltip" class="tooltip"></div>
+    </main>
 
     <script>
-        /**
-         * ---------------------------------------------------------
-         * 1. 数据准备 (Data Preparation)
-         *    这里保持了之前正确的数据源和格式转换逻辑。
-         * ---------------------------------------------------------
-         */
+        // --- 1. Data Logic ---
         const rawData = [
             {Attack: "No Attack", ERM: 94.85, DA: 94.21, PGDT: 84.38, TRADES: 80.42, MART: 81.54, RS: 89.45, IBP: 48.40, PRL: 93.82, TandT: 94.23},
             {Attack: "TIFGSM", ERM: 35.10, DA: 33.00, PGDT: 65.70, TRADES: 62.90, MART: 69.10, RS: 45.40, IBP: 40.20, PRL: 34.00, TandT: 92.80},
@@ -260,40 +294,23 @@
         const approaches = ["ERM", "DA", "PGDT", "TRADES", "MART", "RS", "IBP", "PRL", "TandT"];
         const attacksOriginal = rawData.map(d => d.Attack);
         
-        // 计算平均值用于排序算法
-        const modelStats = approaches.map(m => ({
-            name: m,
-            avg: d3.mean(rawData, d => d[m])
-        }));
-
+        const modelStats = approaches.map(m => ({ name: m, avg: d3.mean(rawData, d => d[m]) }));
         const attackStats = rawData.map(d => {
             const vals = approaches.map(a => d[a]);
-            return {
-                name: d.Attack,
-                avg: d3.mean(vals)
-            };
+            return { name: d.Attack, avg: d3.mean(vals) };
         });
 
-        // 转换为长格式以供 D3 使用
         let longData = [];
         rawData.forEach(row => {
             approaches.forEach(approach => {
-                longData.push({
-                    attack: row.Attack,
-                    approach: approach,
-                    value: row[approach]
-                });
+                longData.push({ attack: row.Attack, approach: approach, value: row[approach] });
             });
         });
 
-        /**
-         * ---------------------------------------------------------
-         * 2. D3 画布设置 (SVG Setup)
-         * ---------------------------------------------------------
-         */
-        const margin = { top: 40, right: 60, bottom: 100, left: 120 };
-        const width = 850 - margin.left - margin.right;
-        const height = 700 - margin.top - margin.bottom;
+        // --- 2. D3 Chart Setup ---
+        const margin = { top: 50, right: 60, bottom: 100, left: 120 };
+        const width = 900 - margin.left - margin.right;
+        const height = 750 - margin.top - margin.bottom;
 
         const svg = d3.select("#chart-container")
             .append("svg")
@@ -302,225 +319,133 @@
             .append("g")
             .attr("transform", `translate(${margin.left},${margin.top})`);
 
-        // 比例尺定义
-        const x = d3.scaleBand().range([0, width]).domain(approaches).padding(0.08); // 增加一点间距
+        const x = d3.scaleBand().range([0, width]).domain(approaches).padding(0.08);
         const y = d3.scaleBand().range([0, height]).domain(attacksOriginal).padding(0.08);
-        
-        // 颜色比例尺 (红-黄-绿)
-        const myColor = d3.scaleSequential()
-            .interpolator(d3.interpolateRdYlGn)
-            .domain([0, 100]);
+        const myColor = d3.scaleSequential().interpolator(d3.interpolateRdYlGn).domain([0, 100]);
 
-        /**
-         * ---------------------------------------------------------
-         * 3. 坐标轴绘制 (Axes Rendering)
-         * ---------------------------------------------------------
-         */
-        const xAxisGroup = svg.append("g")
-            .attr("class", "x-axis")
-            .attr("transform", `translate(0, ${height})`);
+        // Axes
+        const xAxisGroup = svg.append("g").attr("class", "x-axis").attr("transform", `translate(0, ${height})`);
+        const yAxisGroup = svg.append("g").attr("class", "y-axis");
 
-        const yAxisGroup = svg.append("g")
-            .attr("class", "y-axis");
-
-        // 绘制/更新坐标轴的函数
         function renderAxes(transition) {
             let xG = transition ? xAxisGroup.transition(transition) : xAxisGroup;
             let yG = transition ? yAxisGroup.transition(transition) : yAxisGroup;
 
-            xG.call(d3.axisBottom(x))
-              .selectAll("text")
+            xG.call(d3.axisBottom(x)).selectAll("text")
               .attr("class", "x-label")
               .style("text-anchor", "end")
-              .attr("dx", "-.8em")
-              .attr("dy", ".15em")
-              .attr("transform", "rotate(-45)");
+              .attr("dx", "-.8em").attr("dy", ".15em").attr("transform", "rotate(-45)");
 
-            yG.call(d3.axisLeft(y))
-              .selectAll("text")
-              .attr("class", "y-label");
+            yG.call(d3.axisLeft(y)).selectAll("text").attr("class", "y-label");
         }
-
-        // 初始渲染
         renderAxes();
 
-        // 添加主要的坐标轴标签
-        svg.append("text")
-           .attr("x", width / 2)
-           .attr("y", height + margin.bottom - 10)
-           .attr("text-anchor", "middle")
-           .attr("class", "label-main")
-           .text("Defense Approaches (Models)");
+        // Main Labels
+        svg.append("text").attr("x", width/2).attr("y", height + 70).attr("text-anchor", "middle").attr("class", "main-label").text("MODELS (DEFENSE)");
+        svg.append("text").attr("transform", "rotate(-90)").attr("y", -90).attr("x", -height/2).attr("text-anchor", "middle").attr("class", "main-label").text("ATTACK METHODS");
 
-        svg.append("text")
-           .attr("transform", "rotate(-90)")
-           .attr("y", -margin.left + 20)
-           .attr("x", -height / 2)
-           .attr("dy", "1em")
-           .attr("text-anchor", "middle")
-           .attr("class", "label-main")
-           .text("Attack Methods");
-
-        /**
-         * ---------------------------------------------------------
-         * 4. 绘制热力图方块 (Drawing Heatmap Rects)
-         * ---------------------------------------------------------
-         */
-        const rectGroup = svg.append("g").attr("class", "rects");
-
+        // --- 3. Heatmap Rendering ---
+        const rectGroup = svg.append("g");
         const rects = rectGroup.selectAll("rect")
-            .data(longData, d => d.approach + "-" + d.attack) // Key function for data binding
-            .enter()
-            .append("rect")
+            .data(longData, d => d.approach + "-" + d.attack)
+            .enter().append("rect")
             .attr("x", d => x(d.approach))
             .attr("y", d => y(d.attack))
-            .attr("rx", 3) // 小圆角
-            .attr("ry", 3)
+            .attr("rx", 2).attr("ry", 2)
             .attr("width", x.bandwidth())
             .attr("height", y.bandwidth())
             .style("fill", d => myColor(d.value))
-            .style("opacity", 0); // 初始隐藏，用于动画
+            .style("opacity", 0);
 
-        // 开场动画：波浪式浮现
-        rects.transition().duration(1000)
-            .delay((d, i) => i * 1.5)
-            .style("opacity", 1);
+        // Intro Animation
+        rects.transition().duration(800).delay((d, i) => i * 1).style("opacity", 1);
 
-        /**
-         * ---------------------------------------------------------
-         * 5. 交互：悬停提示框 (Interaction: Tooltip)
-         * ---------------------------------------------------------
-         */
+        // --- 4. Interactions ---
         const tooltip = d3.select("#tooltip");
 
         rects.on("mouseover", function(event, d) {
-            // 如果是被过滤器变灰的元素，不触发交互
             if (d3.select(this).style("opacity") < 0.5) return;
-
-            // 高亮当前方格
-            d3.select(this)
-              .style("stroke", "#fff")
-              .style("stroke-width", 2)
-              .style("stroke-opacity", 0.8);
             
-            // 显示 Tooltip
+            d3.select(this).style("stroke", "#fff").style("stroke-width", 2);
+            
             tooltip.style("opacity", 1)
-                .html(`
-                    <div style="margin-bottom:4px; color: #94a3b8;">${d.approach} <span style="font-size:10px">vs</span> ${d.attack}</div>
-                    <div style="font-size:16px; font-weight: 600; color: #fff;">
-                        Score: <span style='color:${d3.interpolateRdYlGn(d.value/100)};'>${d.value.toFixed(2)}</span>
-                    </div>
-                `)
-                .style("left", (event.pageX + 15) + "px")
-                .style("top", (event.pageY - 15) + "px");
+                .html(`<div style="color:#94a3b8; margin-bottom:2px; font-size:11px;">${d.attack}</div>
+                       <div style="font-weight:bold; font-size:14px; margin-bottom:4px;">${d.approach}</div>
+                       <div>Score: <span style="color:${d3.interpolateRdYlGn(d.value/100)}; font-weight:bold;">${d.value.toFixed(1)}</span></div>`)
+                .style("left", (event.pageX + 20) + "px")
+                .style("top", (event.pageY - 20) + "px");
 
-            // 高亮坐标轴文字
             svg.selectAll(".x-label").filter(t => t === d.approach).classed("active", true);
             svg.selectAll(".y-label").filter(t => t === d.attack).classed("active", true);
         })
-        .on("mousemove", function(event) {
-            tooltip.style("left", (event.pageX + 15) + "px").style("top", (event.pageY - 15) + "px");
-        })
+        .on("mousemove", (event) => tooltip.style("left", (event.pageX + 20) + "px").style("top", (event.pageY - 20) + "px"))
         .on("mouseleave", function() {
             d3.select(this).style("stroke", "none");
             tooltip.style("opacity", 0);
             svg.selectAll(".x-label, .y-label").classed("active", false);
         });
 
-        /**
-         * ---------------------------------------------------------
-         * 6. 交互：排序与过滤 (Sorting & Filtering)
-         * ---------------------------------------------------------
-         */
-        
-        // 排序动画函数
+        // Sorting Logic
         function runSort() {
-            const t = svg.transition().duration(1000).ease(d3.easeCubicInOut); // 使用平滑的缓动函数
-
-            // 1. 移动方块
-            rects.transition(t)
-                .attr("x", d => x(d.approach))
-                .attr("y", d => y(d.attack));
-
-            // 2. 更新坐标轴
+            const t = svg.transition().duration(800).ease(d3.easeCubicOut);
+            rects.transition(t).attr("x", d => x(d.approach)).attr("y", d => y(d.attack));
             renderAxes(t);
         }
 
-        // 绑定按钮事件
+        function updateActiveButton(id) {
+            d3.selectAll(".btn-group button").classed("active-btn", false);
+            d3.select("#" + id).classed("active-btn", true);
+        }
+
         d3.select("#btn-orig").on("click", () => {
+            updateActiveButton("btn-orig");
             x.domain(approaches);
             y.domain(attacksOriginal);
             runSort();
         });
 
         d3.select("#btn-best-model").on("click", () => {
-            // 按模型平均分降序排列
+            updateActiveButton("btn-best-model");
             const sortedModels = [...modelStats].sort((a,b) => b.avg - a.avg).map(d => d.name);
             x.domain(sortedModels);
             runSort();
         });
 
         d3.select("#btn-hard-attack").on("click", () => {
-            // 按攻击平均分升序排列 (分越低攻击越强)
+            updateActiveButton("btn-hard-attack");
             const sortedAttacks = [...attackStats].sort((a,b) => a.avg - b.avg).map(d => d.name);
             y.domain(sortedAttacks);
             runSort();
         });
 
-        // 绑定滑动条事件
         d3.select("#filterSlider").on("input", function() {
             const val = +this.value;
             d3.select("#slider-val").text(val);
-            
             rects.transition().duration(200)
-                .style("opacity", d => d.value < val ? 0.05 : 1) // 变灰程度更深，突出显示保留项
+                .style("opacity", d => d.value < val ? 0.05 : 1)
                 .style("filter", d => d.value < val ? "grayscale(100%)" : "none");
         });
 
-        /**
-         * ---------------------------------------------------------
-         * 7. 图例绘制 (Legend)
-         * ---------------------------------------------------------
-         */
-        const legendHeight = 300;
-        const legendWidth = 12;
+        // Legend
+        const legendHeight = 200;
+        const legendWidth = 8;
         const defs = svg.append("defs");
+        const lg = defs.append("linearGradient").attr("id", "grad1").attr("x1", "0%").attr("y1", "100%").attr("x2", "0%").attr("y2", "0%");
+        lg.append("stop").attr("offset", "0%").attr("stop-color", myColor(0));
+        lg.append("stop").attr("offset", "50%").attr("stop-color", myColor(50));
+        lg.append("stop").attr("offset", "100%").attr("stop-color", myColor(100));
+
+        const legend = svg.append("g").attr("transform", `translate(${width + 20}, ${height/2 - legendHeight/2})`);
+        legend.append("rect").attr("width", legendWidth).attr("height", legendHeight).style("fill", "url(#grad1)").attr("rx", 4);
         
-        const linearGradient = defs.append("linearGradient").attr("id", "grad1");
-        linearGradient.attr("x1", "0%").attr("y1", "100%").attr("x2", "0%").attr("y2", "0%");
-        linearGradient.append("stop").attr("offset", "0%").attr("stop-color", myColor(0));
-        linearGradient.append("stop").attr("offset", "50%").attr("stop-color", myColor(50));
-        linearGradient.append("stop").attr("offset", "100%").attr("stop-color", myColor(100));
-
-        const legend = svg.append("g")
-            .attr("transform", `translate(${width + 25}, ${height/2 - legendHeight/2})`);
-
-        // 图例条背景边框
-        legend.append("rect")
-              .attr("width", legendWidth)
-              .attr("height", legendHeight)
-              .style("fill", "url(#grad1)")
-              .style("stroke", "#334155")
-              .style("stroke-width", 1);
-            
         const yLegend = d3.scaleLinear().range([legendHeight, 0]).domain([0, 100]);
-        
-        const legendAxisGroup = legend.append("g")
-            .attr("transform", `translate(${legendWidth}, 0)`)
-            .call(d3.axisRight(yLegend).ticks(5));
-        
-        // 图例文字样式修正
-        legendAxisGroup.selectAll("text").attr("class", "legend-text");
-        legendAxisGroup.selectAll("line").attr("stroke", "#475569");
-        legendAxisGroup.selectAll("path").remove(); // 移除轴线
-
-        legend.append("text")
-              .attr("x", 0)
-              .attr("y", -10)
-              .text("Score")
-              .attr("class", "legend-text")
-              .style("font-weight", "bold");
+        const lag = legend.append("g").attr("transform", `translate(${legendWidth + 5}, 0)`).call(d3.axisRight(yLegend).ticks(5));
+        lag.selectAll("text").attr("class", "legend-text");
+        lag.selectAll("line").remove();
+        lag.selectAll("path").remove();
+        legend.append("text").attr("x", 0).attr("y", -10).text("Score").attr("class", "legend-text").style("font-weight", "bold");
 
     </script>
 </body>
 </html>
+```
